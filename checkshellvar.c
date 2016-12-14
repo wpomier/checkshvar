@@ -2,35 +2,36 @@
 #include <ctype.h>
 #include <string.h>
 
+FILE *fin;
+
 #define TRUE 1
 #define FALSE 0
 
 int peek() {
-	int c = getchar();
-	ungetc(c, stdin);
+	int c = fgetc(fin);
+	ungetc(c, fin);
 	return c;
 }
 
 int loop(const char *whilech, const char *untilch, int ignoreRule) {
 	const static char* validIdCh =
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
 	char single[] = "x";
-	int c, p, last, par = 0, brace = 0;
-	while ((c = getchar()) != EOF) {
-		if (untilch && strchr(untilch, c)
-						|| whilech && !strchr(whilech, c))
+	int c, p, last=' ', par = 0, brace = 0;
+	while ((c = fgetc(fin)) != EOF) {
+		if (untilch && strchr(untilch, c) || whilech && !strchr(whilech, c))
 			return c;
 		if (!ignoreRule)
 			switch (c) {
 			case '\\':
 				putchar(c);
-				c = getchar();
+				c = fgetc(fin);
 				break;
 			case '"':
 			case '\'':
-					*single = c;
-					putchar(c);
-					c = loop(NULL, single, TRUE);
+				*single = c;
+				putchar(c);
+				c = loop(NULL, single, TRUE);
 				break;
 			case '#':
 				if (isspace(last)) {
@@ -47,17 +48,17 @@ int loop(const char *whilech, const char *untilch, int ignoreRule) {
 				c = '"';
 				break;
 			case '$':
-					printf("\"$");
-					p = peek();
-					if (isalnum(p)) {
-						c = loop(validIdCh, NULL, TRUE);
-						putchar('"');
-						ungetc(c, stdin);
-						continue;
-					} else if (p == '{' || p == '(')
-						putchar(c = loop(NULL, NULL, FALSE)), c = '"';
-					else
-						putchar(c = getchar()), c = '"';
+				printf("\"$");
+				p = peek();
+				if (isalnum(p)) {
+					c = loop(validIdCh, NULL, TRUE);
+					putchar('"');
+					ungetc(c, fin);
+					continue;
+				} else if (p == '{' || p == '(')
+					putchar(c = loop(NULL, NULL, FALSE)), c = '"';
+				else
+					putchar(c = fgetc(fin)), c = '"';
 				break;
 			case '{':
 				brace++;
@@ -80,7 +81,17 @@ int loop(const char *whilech, const char *untilch, int ignoreRule) {
 	return c;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+	if (argc == 1)
+		fin = stdin;
+	else if (!(fin = fopen(argv[1], "rt"))) {
+		fprintf(stderr, "Cannot open '%s'", argv[1]);
+		return 1;
+	}
+
 	loop(NULL, NULL, FALSE);
+
+	if (fin != stdin)
+		fclose(fin);
 	return 0;
 }
