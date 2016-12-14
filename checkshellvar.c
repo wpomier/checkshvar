@@ -4,8 +4,9 @@
 
 FILE *fin;
 
-#define TRUE 1
-#define FALSE 0
+#define NORMAL			0x000
+#define IGNORE_RULE 	0x100
+#define EXIT_WHEN_CLOSE	0x200
 
 int peek() {
 	int c = fgetc(fin);
@@ -13,37 +14,36 @@ int peek() {
 	return c;
 }
 
-int loop(const char *whilech, const char *untilch, int ignoreRule) {
+int loop(const char *whilech, const char *untilch, int action) {
 	const static char* validIdCh =
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
 	char single[] = "x";
-	int c, p, last=' ', par = 0, brace = 0;
+	int c, p, last = ' ', par = 0, brace = 0;
 	while ((c = fgetc(fin)) != EOF) {
 		if (untilch && strchr(untilch, c) || whilech && !strchr(whilech, c))
 			return c;
-		if (!ignoreRule)
+		if (c == '\\')
+			putchar(c), c = fgetc(fin);
+
+		if (action != IGNORE_RULE)
 			switch (c) {
-			case '\\':
-				putchar(c);
-				c = fgetc(fin);
-				break;
 			case '"':
 			case '\'':
 				*single = c;
 				putchar(c);
-				c = loop(NULL, single, TRUE);
+				c = loop(NULL, single, IGNORE_RULE);
 				break;
 			case '#':
 				if (isspace(last)) {
 					*single = '\n';
 					putchar(c);
-					c = loop(NULL, single, TRUE);
+					c = loop(NULL, single, IGNORE_RULE);
 				}
 				break;
 			case '`':
 				*single = '`';
 				printf("\"$(");
-				c = loop(NULL, single, FALSE);
+				c = loop(NULL, single, NORMAL);
 				putchar(')');
 				c = '"';
 				break;
@@ -51,12 +51,12 @@ int loop(const char *whilech, const char *untilch, int ignoreRule) {
 				printf("\"$");
 				p = peek();
 				if (isalnum(p)) {
-					c = loop(validIdCh, NULL, TRUE);
+					c = loop(validIdCh, NULL, IGNORE_RULE);
 					putchar('"');
 					ungetc(c, fin);
 					continue;
 				} else if (p == '{' || p == '(')
-					putchar(c = loop(NULL, NULL, FALSE)), c = '"';
+					putchar(c = loop(NULL, NULL, EXIT_WHEN_CLOSE)), c = '"';
 				else
 					putchar(c = fgetc(fin)), c = '"';
 				break;
@@ -64,14 +64,14 @@ int loop(const char *whilech, const char *untilch, int ignoreRule) {
 				brace++;
 				break;
 			case '}':
-				if (!--brace && !par)
+				if (!--brace && !par && action == EXIT_WHEN_CLOSE)
 					return c;
 				break;
 			case '(':
 				par++;
 				break;
 			case ')':
-				if (!--par && !brace)
+				if (!--par && !brace && action == EXIT_WHEN_CLOSE)
 					return c;
 				break;
 			}
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	loop(NULL, NULL, FALSE);
+	loop(NULL, NULL, NORMAL);
 
 	if (fin != stdin)
 		fclose(fin);
