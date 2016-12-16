@@ -24,7 +24,7 @@ int loop(const char *whilech, const char *untilch, int action) {
 			return c;
 		if (c == '\\')
 			putchar(c), c = fgetc(fin);
-
+		else 
 		if (action != IGNORE_RULE)
 			switch (c) {
 			case '"':
