@@ -1,17 +1,19 @@
 # checkShellVars
-Compile:
-$ gcc -o checkshellvar checkshellvar.c
+## Compile:
 
-Use:
-$ checkshellvar < script.sh > scriptout.sh
+    $ gcc -o checkshellvar checkshellvar.c
 
-Example:
+## Use:
 
-$ cat script.sh
-echo "Removing $a ${b} $(c $(c)) `d $d` ${10} $@ now"
-rm -rf $a ${b} $(c $(c)) `d $d` ${10} $@
+    $ checkshellvar < script.sh > scriptout.sh
 
-$ checkshellvar < script.sh
-echo "Removing $a ${b} $(c $(c)) `d $d` ${10} $@ now"
-rm -rf "$a" "${b}" "$(c "$(c)")" "$(d "$d")" "${10}" "$@"
+## Example:
+
+    $ cat script.sh
+    echo "Removing $a ${b} $(c $(c)) `d $d` ${10} $@ now"
+    rm -rf $a ${b} $(c $(c)) `d $d` ${10} $@
+
+    $ checkshellvar < script.sh
+    echo "Removing $a ${b} $(c $(c)) `d $d` ${10} $@ now"
+    rm -rf "$a" "${b}" "$(c "$(c)")" "$(d "$d")" "${10}" "$@"
 
